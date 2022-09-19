@@ -33,8 +33,8 @@ class PostsAppViewTest(TestCase):
             self.post.author.username
         )
         self.assertEqual(
-            post_from_response.group.title,
-            self.post.group.title
+            post_from_response.group.id,
+            self.post.group.id
         )
 
     def check_correct_group_fields(self, group_from_response):
