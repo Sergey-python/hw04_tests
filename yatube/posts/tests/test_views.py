@@ -25,17 +25,26 @@ class PostsAppViewTest(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
-    def check_correct_post_fields(self, post):
-        """Проверка полей поста."""
-        self.assertEqual(post.text, 'Тестовый текст')
-        self.assertEqual(post.author.username, 'HasNoName')
-        self.assertEqual(post.group.title, 'Название тестовой группы')
+    def check_correct_post_fields(self, post_from_response):
+        """Проверка значений полей поста."""
+        self.assertEqual(post_from_response.text, self.post.text)
+        self.assertEqual(
+            post_from_response.author.username,
+            self.post.author.username
+        )
+        self.assertEqual(
+            post_from_response.group.title,
+            self.post.group.title
+        )
 
-    def check_correct_group_fields(self, group):
-        """Проверка полей группы."""
-        self.assertEqual(group.title, 'Название тестовой группы')
-        self.assertEqual(group.slug, 'test-slug')
-        self.assertEqual(group.description, 'Описание тестовой группы')
+    def check_correct_group_fields(self, group_from_response):
+        """Проверка значений полей группы."""
+        self.assertEqual(group_from_response.title, self.group.title)
+        self.assertEqual(group_from_response.slug, self.group.slug)
+        self.assertEqual(
+            group_from_response.description,
+            self.group.description
+        )
 
     def check_correct_post_form_fields(self, form):
         """Проверка типов полей формы поста."""
@@ -51,27 +60,27 @@ class PostsAppViewTest(TestCase):
     def test_index_get_correct_context(self):
         """Контекст главной страницы."""
         response = self.authorized_client.get(reverse('posts:index'))
-        post = response.context.get('page_obj')[0]
-        self.check_correct_post_fields(post)
+        post_from_response = response.context.get('page_obj')[0]
+        self.check_correct_post_fields(post_from_response)
 
     def test_group_posts_get_correct_context(self):
         """Контекст страницы группы."""
         response = self.authorized_client.get(
             reverse('posts:group_list', args=[self.group.slug])
         )
-        post = response.context.get('page_obj')[0]
-        group = response.context.get('group')
-        self.check_correct_post_fields(post)
-        self.check_correct_group_fields(group)
+        post_from_response = response.context.get('page_obj')[0]
+        group_from_response = response.context.get('group')
+        self.check_correct_post_fields(post_from_response)
+        self.check_correct_group_fields(group_from_response)
 
     def test_profile_get_correct_context(self):
         """Контекст страницы профайла."""
         response = self.authorized_client.get(
             reverse('posts:profile', args=[self.user.username])
         )
-        post = response.context.get('page_obj')[0]
+        post_from_response = response.context.get('page_obj')[0]
         author = response.context.get('author')
-        self.check_correct_post_fields(post)
+        self.check_correct_post_fields(post_from_response)
         self.assertEqual(author.username, self.user.username)
 
     def test_post_detail_get_correct_context(self):
@@ -79,8 +88,8 @@ class PostsAppViewTest(TestCase):
         response = self.authorized_client.get(
             reverse('posts:post_detail', args=[self.post.id])
         )
-        post = response.context.get('post')
-        self.check_correct_post_fields(post)
+        post_from_response = response.context.get('post')
+        self.check_correct_post_fields(post_from_response)
 
     def test_create_get_correct_context(self):
         """Контекст формы создания поста."""
@@ -95,29 +104,6 @@ class PostsAppViewTest(TestCase):
         )
         form = response.context.get('form')
         self.check_correct_post_form_fields(form)
-
-    def test_views_uses_correct_template(self):
-        """View использует соответствующий шаблон."""
-        view_names_templates = {
-            reverse('posts:index'): 'posts/index.html',
-            reverse('posts:group_list', args=[self.group.slug]): (
-                'posts/group_list.html'
-            ),
-            reverse('posts:profile', args=[self.user.username]): (
-                'posts/profile.html'
-            ),
-            reverse('posts:post_detail', args=[self.post.id]): (
-                'posts/post_detail.html'
-            ),
-            reverse('posts:post_edit', args=[self.post.id]): (
-                'posts/create_post.html'
-            ),
-            reverse('posts:post_create'): 'posts/create_post.html'
-        }
-        for view, template in view_names_templates.items():
-            with self.subTest(view=view):
-                response = self.authorized_client.get(view)
-                self.assertTemplateUsed(response, template)
 
     def test_new_post_will_appear_on_pages(self):
         """Новый пост с группой есть на страницах."""
@@ -142,14 +128,9 @@ class PostsAppViewTest(TestCase):
         response = self.authorized_client.get(
             reverse('posts:group_list', args=[new_group.slug])
         )
-        # капец, ну ты видал до чего смог допереть???
         post = response.context.get('page_obj').paginator.object_list.filter(
             id=self.post.id
         )
-        # posts = list(filter(
-        #     lambda post: post.id == self.post.id,
-        #     response.context.get('page_obj')
-        # ))
         self.assertFalse(post.exists())
 
 
@@ -169,9 +150,6 @@ class PaginatorViewsTest(TestCase):
                  group=cls.group) for i in range(13)
         ]
         Post.objects.bulk_create(new_posts)
-
-    def setUp(self):
-        self.guest_client = Client()
 
     def test_first_page_contains_ten_records(self):
         """На первой странице 10 постов."""

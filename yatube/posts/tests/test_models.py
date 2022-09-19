@@ -20,13 +20,10 @@ class PostsAppModelTest(TestCase):
 
     def test_models_have_correct_object_names(self):
         """Проверяем, что у моделей корректно работает __str__."""
-        post = self.post
-        group = self.group
-        model_objects = {
-            'Post': {'obj_name': str(post), 'expected_value': post.text[:15]},
-            'Group': {'obj_name': str(group), 'expected_value': group.title}
-        }
-        for model_name, object in model_objects.items():
+        model_objects = (
+            ('Post', (str(self.post), self.post.text[:15])),
+            ('Group', (str(self.group), self.group.title))
+        )
+        for model_name, object in model_objects:
             with self.subTest(model_name=model_name):
-                self.assertEqual(object['obj_name'],
-                                 object['expected_value'])
+                self.assertEqual(object[0], object[1])

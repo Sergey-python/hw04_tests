@@ -11,8 +11,7 @@ class PostsAppFormTest(TestCase):
         cls.user = User.objects.create_user(username='HasNoName')
         cls.group = Group.objects.create(
             title='Название тестовой группы',
-            slug='test-slug',
-            description='Описание тестовой группы'
+            slug='test-slug'
         )
         cls.post = Post.objects.create(
             text='Тестовый текст',
@@ -27,7 +26,10 @@ class PostsAppFormTest(TestCase):
     def test_create_post(self):
         """Пост корректно добавляется в базу."""
         posts_count = Post.objects.count()
-        form_data = {'text': 'Тестовый текст2'}
+        form_data = {
+            'text': 'Тестовый текст2',
+            'group': self.group.id
+        }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
@@ -42,14 +44,22 @@ class PostsAppFormTest(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='Тестовый текст2',
-                author=self.user
+                text=form_data['text'],
+                group__id=form_data['group'],
+                author=self.user,
             ).exists()
         )
 
     def test_edit_post(self):
         """Пост корректно редактируется."""
-        form_data = {'text': 'Измененный текст'}
+        new_group = Group.objects.create(
+            title='Название новой тестовой группы',
+            slug='new-test-slug'
+        )
+        form_data = {
+            'text': 'Измененный текст',
+            'group': new_group.id
+        }
         response = self.authorized_client.post(
             reverse('posts:post_edit', args=[self.post.id]),
             data=form_data,
@@ -58,6 +68,7 @@ class PostsAppFormTest(TestCase):
         # Проверка что пост изменился
         change_post = Post.objects.get(id=self.post.id)
         self.assertEqual(change_post.text, form_data['text'])
+        self.assertEqual(change_post.group.id, form_data['group'])
         # Проверка редиректа после изменения
         self.assertRedirects(
             response,
